@@ -33,11 +33,11 @@ impl<T> SlotMap<T> {
         }
     }
 
-    pub fn insert(&mut self, item: T) -> Key {
+    pub fn insert(&mut self, value: T) -> Key {
         if let Some(index) = self.free.pop() {
             match self.slots[index] {
                 Slot::Vacant(generation) => {
-                    let new_slot = Slot::Occupied(generation, item);
+                    let new_slot = Slot::Occupied(generation, value);
                     let old_slot = mem::replace(&mut self.slots[index], new_slot);
                     mem::drop(old_slot);
                     Key { index, generation }
@@ -45,7 +45,7 @@ impl<T> SlotMap<T> {
                 _ => unreachable!(),
             }
         } else {
-            self.slots.push(Slot::Occupied(0, item));
+            self.slots.push(Slot::Occupied(0, value));
             Key {
                 index: self.slots.len() - 1,
                 generation: 0,
@@ -59,7 +59,7 @@ impl<T> SlotMap<T> {
             let new_slot = Slot::Vacant(key.generation + 1);
             let old_slot = mem::replace(&mut self.slots[key.index], new_slot);
             match old_slot {
-                Slot::Occupied(_, item) => Some(item),
+                Slot::Occupied(_, value) => Some(value),
                 _ => unreachable!(),
             }
         } else {
@@ -76,7 +76,7 @@ impl<T> SlotMap<T> {
 
     pub fn get_mut(&mut self, key: Key) -> Option<&mut T> {
         match self.slots.get_mut(key.index) {
-            Some(Slot::Occupied(g, item)) if *g == key.generation => Some(item),
+            Some(Slot::Occupied(g, value)) if *g == key.generation => Some(value),
             _ => None,
         }
     }
@@ -136,8 +136,8 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.find_map(|(index, slot)| match slot {
-            Slot::Occupied(generation, item) => Some((
-                item,
+            Slot::Occupied(generation, value) => Some((
+                value,
                 Key {
                     index,
                     generation: *generation,
@@ -153,8 +153,8 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.find_map(|(index, slot)| match slot {
-            Slot::Occupied(generation, item) => Some((
-                item,
+            Slot::Occupied(generation, value) => Some((
+                value,
                 Key {
                     index,
                     generation: *generation,
@@ -170,7 +170,7 @@ impl<T> Iterator for IntoIter<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.find_map(|(index, slot)| match slot {
-            Slot::Occupied(generation, item) => Some((item, Key { index, generation })),
+            Slot::Occupied(generation, value) => Some((value, Key { index, generation })),
             _ => None,
         })
     }
