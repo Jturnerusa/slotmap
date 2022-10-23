@@ -88,6 +88,14 @@ impl<T> SlotMap<T> {
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut(self.slots.as_mut_slice().iter_mut().enumerate())
     }
+
+    pub fn len(&self) -> usize {
+        self.slots.len() - self.free.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<T> Index<Key> for SlotMap<T> {
