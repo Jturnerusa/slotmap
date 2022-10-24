@@ -282,4 +282,25 @@ mod tests {
         assert_eq!(iter.next().unwrap(), (c, "c"));
         assert_eq!(iter.next(), None);
     }
+
+    #[test]
+    fn test_iterator_skip_vacant() {
+        let mut slotmap = SlotMap::new();
+        let a = slotmap.insert("a");
+        let b = slotmap.insert("b");
+        let c = slotmap.insert("c");
+        slotmap.remove(b);
+        let mut iter = slotmap.iter();
+        assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (a, "a"));
+        assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (c, "c"));
+        assert_eq!(iter.next(), None);
+        let mut iter = slotmap.iter_mut();
+        assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (a, "a"));
+        assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (c, "c"));
+        assert_eq!(iter.next(), None);
+        let mut iter = slotmap.into_iter();
+        assert_eq!(iter.next().unwrap(), (a, "a"));
+        assert_eq!(iter.next().unwrap(), (c, "c"));
+        assert_eq!(iter.next(), None);
+    }
 }
