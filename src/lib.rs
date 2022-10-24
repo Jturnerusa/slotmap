@@ -73,14 +73,14 @@ impl<T> SlotMap<T> {
 
     pub fn get(&self, key: Key) -> Option<&T> {
         match self.slots.get(key.index) {
-            Some(Slot::Occupied(g, item)) if *g == key.generation => Some(item),
+            Some(Slot::Occupied(generation, item)) if *generation == key.generation => Some(item),
             _ => None,
         }
     }
 
     pub fn get_mut(&mut self, key: Key) -> Option<&mut T> {
         match self.slots.get_mut(key.index) {
-            Some(Slot::Occupied(g, value)) if *g == key.generation => Some(value),
+            Some(Slot::Occupied(generation, value)) if *generation == key.generation => Some(value),
             _ => None,
         }
     }
