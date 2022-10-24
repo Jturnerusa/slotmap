@@ -21,9 +21,15 @@ pub struct SlotMap<T> {
 
 pub struct Iter<'a, T>(::std::iter::Enumerate<::std::slice::Iter<'a, Slot<T>>>);
 
+type IterItem<'a, T> = (Key, &'a T);
+
 pub struct IterMut<'a, T>(::std::iter::Enumerate<::std::slice::IterMut<'a, Slot<T>>>);
 
+type IterMutItem<'a, T> = (Key, &'a mut T);
+
 pub struct IntoIter<T>(::std::iter::Enumerate<::std::vec::IntoIter<Slot<T>>>);
+
+type IntoIterItem<T> = (Key, T);
 
 impl<T> SlotMap<T> {
     pub fn new() -> SlotMap<T> {
@@ -113,7 +119,7 @@ impl<T> IndexMut<Key> for SlotMap<T> {
 }
 
 impl<'a, T> IntoIterator for &'a SlotMap<T> {
-    type Item = (&'a T, Key);
+    type Item = IterItem<'a, T>;
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -122,7 +128,7 @@ impl<'a, T> IntoIterator for &'a SlotMap<T> {
 }
 
 impl<'a, T> IntoIterator for &'a mut SlotMap<T> {
-    type Item = (&'a mut T, Key);
+    type Item = IterMutItem<'a, T>;
     type IntoIter = IterMut<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -131,7 +137,7 @@ impl<'a, T> IntoIterator for &'a mut SlotMap<T> {
 }
 
 impl<T> IntoIterator for SlotMap<T> {
-    type Item = (T, Key);
+    type Item = IntoIterItem<T>;
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -140,16 +146,16 @@ impl<T> IntoIterator for SlotMap<T> {
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = (&'a T, Key);
+    type Item = IterItem<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.find_map(|(index, slot)| match slot {
             Slot::Occupied(generation, value) => Some((
-                value,
                 Key {
                     index,
                     generation: *generation,
                 },
+                value,
             )),
             _ => None,
         })
@@ -157,16 +163,16 @@ impl<'a, T> Iterator for Iter<'a, T> {
 }
 
 impl<'a, T> Iterator for IterMut<'a, T> {
-    type Item = (&'a mut T, Key);
+    type Item = IterMutItem<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.find_map(|(index, slot)| match slot {
             Slot::Occupied(generation, value) => Some((
-                value,
                 Key {
                     index,
                     generation: *generation,
                 },
+                value,
             )),
             _ => None,
         })
@@ -174,11 +180,11 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 }
 
 impl<T> Iterator for IntoIter<T> {
-    type Item = (T, Key);
+    type Item = IntoIterItem<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.find_map(|(index, slot)| match slot {
-            Slot::Occupied(generation, value) => Some((value, Key { index, generation })),
+            Slot::Occupied(generation, value) => Some((Key { index, generation }, value)),
             _ => None,
         })
     }
