@@ -1,6 +1,10 @@
 use std::mem;
 use std::ops::{Index, IndexMut};
 
+type IterItem<'a, T> = (Key, &'a T);
+type IterMutItem<'a, T> = (Key, &'a mut T);
+type IntoIterItem<T> = (Key, T);
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Key {
     index: usize,
@@ -21,15 +25,9 @@ pub struct SlotMap<T> {
 
 pub struct Iter<'a, T>(::std::iter::Enumerate<::std::slice::Iter<'a, Slot<T>>>);
 
-type IterItem<'a, T> = (Key, &'a T);
-
 pub struct IterMut<'a, T>(::std::iter::Enumerate<::std::slice::IterMut<'a, Slot<T>>>);
 
-type IterMutItem<'a, T> = (Key, &'a mut T);
-
 pub struct IntoIter<T>(::std::iter::Enumerate<::std::vec::IntoIter<Slot<T>>>);
-
-type IntoIterItem<T> = (Key, T);
 
 impl<T> SlotMap<T> {
     pub fn new() -> SlotMap<T> {
