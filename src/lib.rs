@@ -270,13 +270,16 @@ mod tests {
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (a, "a"));
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (b, "b"));
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (c, "c"));
+        assert_eq!(iter.next(), None);
         let mut iter = slotmap.iter_mut();
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (a, "a"));
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (b, "b"));
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (c, "c"));
+        assert_eq!(iter.next(), None);
         let mut iter = slotmap.into_iter();
         assert_eq!(iter.next().unwrap(), (a, "a"));
         assert_eq!(iter.next().unwrap(), (b, "b"));
         assert_eq!(iter.next().unwrap(), (c, "c"));
+        assert_eq!(iter.next(), None);
     }
 }
