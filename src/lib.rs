@@ -261,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iter() {
+    fn test_iterator() {
         let mut slotmap = SlotMap::new();
         let a = slotmap.insert("a");
         let b = slotmap.insert("b");
@@ -270,5 +270,13 @@ mod tests {
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (a, "a"));
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (b, "b"));
         assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (c, "c"));
+        let mut iter = slotmap.iter_mut();
+        assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (a, "a"));
+        assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (b, "b"));
+        assert_eq!(iter.next().map(|(k, v)| (k, *v)).unwrap(), (c, "c"));
+        let mut iter = slotmap.into_iter();
+        assert_eq!(iter.next().unwrap(), (a, "a"));
+        assert_eq!(iter.next().unwrap(), (b, "b"));
+        assert_eq!(iter.next().unwrap(), (c, "c"));
     }
 }
