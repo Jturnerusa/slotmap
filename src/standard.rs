@@ -16,14 +16,14 @@ enum Slot<T> {
 }
 
 #[derive(Clone, Default)]
-pub struct SlotMap<T> {
+pub struct StandardSlotMap<T> {
     slots: Vec<Slot<T>>,
     free: Vec<usize>,
 }
 
-impl<T> SlotMap<T> {
-    pub fn new() -> SlotMap<T> {
-        SlotMap {
+impl<T> StandardSlotMap<T> {
+    pub fn new() -> StandardSlotMap<T> {
+        StandardSlotMap {
             slots: Vec::new(),
             free: Vec::new(),
         }
@@ -94,7 +94,7 @@ impl<T> SlotMap<T> {
     }
 }
 
-impl<T> Index<Key> for SlotMap<T> {
+impl<T> Index<Key> for StandardSlotMap<T> {
     type Output = T;
 
     fn index(&self, key: Key) -> &Self::Output {
@@ -102,13 +102,13 @@ impl<T> Index<Key> for SlotMap<T> {
     }
 }
 
-impl<T> IndexMut<Key> for SlotMap<T> {
+impl<T> IndexMut<Key> for StandardSlotMap<T> {
     fn index_mut(&mut self, key: Key) -> &mut Self::Output {
         self.get_mut(key).unwrap()
     }
 }
 
-impl<'a, T> IntoIterator for &'a SlotMap<T> {
+impl<'a, T> IntoIterator for &'a StandardSlotMap<T> {
     type Item = IterItem<'a, T>;
     type IntoIter = Iter<'a, T>;
 
@@ -117,7 +117,7 @@ impl<'a, T> IntoIterator for &'a SlotMap<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a mut SlotMap<T> {
+impl<'a, T> IntoIterator for &'a mut StandardSlotMap<T> {
     type Item = IterMutItem<'a, T>;
     type IntoIter = IterMut<'a, T>;
 
@@ -126,7 +126,7 @@ impl<'a, T> IntoIterator for &'a mut SlotMap<T> {
     }
 }
 
-impl<T> IntoIterator for SlotMap<T> {
+impl<T> IntoIterator for StandardSlotMap<T> {
     type Item = IntoIterItem<T>;
     type IntoIter = IntoIter<T>;
 
@@ -184,16 +184,16 @@ impl<T> Iterator for IntoIter<T> {
 mod tests {
     use super::*;
 
-    crate::macros::test_insert_get!(SlotMap<_>);
-    crate::macros::test_remove!(SlotMap<_>);
-    crate::macros::test_len!(SlotMap<_>);
-    crate::macros::test_uaf!(SlotMap<_>);
-    crate::macros::test_iterator!(SlotMap<_>);
-    crate::macros::test_iterator_skip_vacant!(SlotMap<_>);
+    crate::macros::test_insert_get!(StandardSlotMap<_>);
+    crate::macros::test_remove!(StandardSlotMap<_>);
+    crate::macros::test_len!(StandardSlotMap<_>);
+    crate::macros::test_uaf!(StandardSlotMap<_>);
+    crate::macros::test_iterator!(StandardSlotMap<_>);
+    crate::macros::test_iterator_skip_vacant!(StandardSlotMap<_>);
 
     #[test]
     fn test_slot_reuse() {
-        let mut slotmap = SlotMap::new();
+        let mut slotmap = StandardSlotMap::new();
         let a = slotmap.insert(());
         let b = slotmap.insert(());
         let c = slotmap.insert(());
