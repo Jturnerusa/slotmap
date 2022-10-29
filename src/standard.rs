@@ -179,3 +179,31 @@ impl<T> Iterator for IntoIter<T> {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    crate::macros::test_insert_get!(SlotMap<_>);
+    crate::macros::test_remove!(SlotMap<_>);
+    crate::macros::test_len!(SlotMap<_>);
+    crate::macros::test_uaf!(SlotMap<_>);
+    crate::macros::test_iterator!(SlotMap<_>);
+    crate::macros::test_iterator_skip_vacant!(SlotMap<_>);
+
+    #[test]
+    fn test_slot_reuse() {
+        let mut slotmap = SlotMap::new();
+        let a = slotmap.insert(());
+        let b = slotmap.insert(());
+        let c = slotmap.insert(());
+        slotmap.remove(a);
+        slotmap.remove(b);
+        slotmap.remove(c);
+        slotmap.insert(());
+        slotmap.insert(());
+        slotmap.insert(());
+        slotmap.insert(());
+        assert_eq!(slotmap.len(), 4);
+    }
+}
