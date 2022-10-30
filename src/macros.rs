@@ -124,6 +124,35 @@ macro_rules! test_iterator_skip_vacant {
     };
 }
 
+#[macro_export]
+macro_rules! test_double_ended_iterator {
+    ($type:ty) => {
+        #[test]
+        fn test_double_ended_iterator() {
+            let mut slotmap = <$type>::new();
+            let a = slotmap.insert("a");
+            let b = slotmap.insert("b");
+            let c = slotmap.insert("c");
+            let mut iter = slotmap.iter();
+            assert_eq!(iter.next_back().map(|(k, v)| (k, *v)).unwrap(), (c, "c"));
+            assert_eq!(iter.next_back().map(|(k, v)| (k, *v)).unwrap(), (b, "b"));
+            assert_eq!(iter.next_back().map(|(k, v)| (k, *v)).unwrap(), (a, "a"));
+            assert_eq!(iter.next_back(), None);
+            let mut iter = slotmap.iter_mut();
+            assert_eq!(iter.next_back().map(|(k, v)| (k, *v)).unwrap(), (c, "c"));
+            assert_eq!(iter.next_back().map(|(k, v)| (k, *v)).unwrap(), (b, "b"));
+            assert_eq!(iter.next_back().map(|(k, v)| (k, *v)).unwrap(), (a, "a"));
+            assert_eq!(iter.next_back(), None);
+            let mut iter = slotmap.into_iter();
+            assert_eq!(iter.next_back().unwrap(), (c, "c"));
+            assert_eq!(iter.next_back().unwrap(), (b, "b"));
+            assert_eq!(iter.next_back().unwrap(), (a, "a"));
+            assert_eq!(iter.next_back(), None);
+        }
+    };
+}
+
+pub use test_double_ended_iterator;
 pub use test_insert_get;
 pub use test_iterator;
 pub use test_iterator_skip_vacant;

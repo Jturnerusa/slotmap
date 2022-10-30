@@ -1,13 +1,19 @@
+use std::iter;
 use std::mem;
 use std::ops::{Index, IndexMut};
+use std::slice;
+use std::vec;
 
 use crate::{IntoIterItem, IterItem, IterMutItem, Key};
 
-pub struct Iter<'a, T>(::std::iter::Enumerate<::std::slice::Iter<'a, Slot<T>>>);
+type EnumeratedFilterMap<T, F> = iter::FilterMap<iter::Enumerate<T>, F>;
+type IterFn<'a, T> = fn((usize, &'a Slot<T>)) -> Option<IterItem<'a, T>>;
+type IterMutFn<'a, T> = fn((usize, &'a mut Slot<T>)) -> Option<IterMutItem<'a, T>>;
+type IntoIterFn<T> = fn((usize, Slot<T>)) -> Option<IntoIterItem<T>>;
 
-pub struct IterMut<'a, T>(::std::iter::Enumerate<::std::slice::IterMut<'a, Slot<T>>>);
-
-pub struct IntoIter<T>(::std::iter::Enumerate<::std::vec::IntoIter<Slot<T>>>);
+pub struct Iter<'a, T>(EnumeratedFilterMap<slice::Iter<'a, Slot<T>>, IterFn<'a, T>>);
+pub struct IterMut<'a, T>(EnumeratedFilterMap<slice::IterMut<'a, Slot<T>>, IterMutFn<'a, T>>);
+pub struct IntoIter<T>(EnumeratedFilterMap<vec::IntoIter<Slot<T>>, IntoIterFn<T>>);
 
 #[derive(Clone, Debug)]
 enum Slot<T> {
@@ -77,12 +83,34 @@ impl<T> StandardSlotMap<T> {
         }
     }
 
-    pub fn iter(&self) -> Iter<T> {
-        Iter(self.slots.as_slice().iter().enumerate())
+    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+        Iter(self.slots.as_slice().iter().enumerate().filter_map(
+            |(index, slot): (usize, &'a Slot<T>)| match slot {
+                Slot::Occupied(generation, value) => {
+                    let key = Key {
+                        index,
+                        generation: *generation,
+                    };
+                    Some((key, value))
+                }
+                _ => None,
+            },
+        ))
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<T> {
-        IterMut(self.slots.as_mut_slice().iter_mut().enumerate())
+    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
+        IterMut(self.slots.as_mut_slice().iter_mut().enumerate().filter_map(
+            |(index, slot): (usize, &'a mut Slot<T>)| match slot {
+                Slot::Occupied(generation, value) => {
+                    let key = Key {
+                        index,
+                        generation: *generation,
+                    };
+                    Some((key, value))
+                }
+                _ => None,
+            },
+        ))
     }
 
     pub fn len(&self) -> usize {
@@ -131,7 +159,15 @@ impl<T> IntoIterator for StandardSlotMap<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter(self.slots.into_iter().enumerate())
+        IntoIter(self.slots.into_iter().enumerate().filter_map(
+            |(index, slot): (usize, Slot<T>)| match slot {
+                Slot::Occupied(generation, value) => {
+                    let key = Key { index, generation };
+                    Some((key, value))
+                }
+                _ => None,
+            },
+        ))
     }
 }
 
@@ -139,16 +175,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     type Item = IterItem<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.find_map(|(index, slot)| match slot {
-            Slot::Occupied(generation, value) => Some((
-                Key {
-                    index,
-                    generation: *generation,
-                },
-                value,
-            )),
-            _ => None,
-        })
+        self.0.next()
     }
 }
 
@@ -156,16 +183,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = IterMutItem<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.find_map(|(index, slot)| match slot {
-            Slot::Occupied(generation, value) => Some((
-                Key {
-                    index,
-                    generation: *generation,
-                },
-                value,
-            )),
-            _ => None,
-        })
+        self.0.next()
     }
 }
 
@@ -173,10 +191,25 @@ impl<T> Iterator for IntoIter<T> {
     type Item = IntoIterItem<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.find_map(|(index, slot)| match slot {
-            Slot::Occupied(generation, value) => Some((Key { index, generation }, value)),
-            _ => None,
-        })
+        self.0.next()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
     }
 }
 
@@ -190,6 +223,7 @@ mod tests {
     crate::macros::test_uaf!(StandardSlotMap<_>);
     crate::macros::test_iterator!(StandardSlotMap<_>);
     crate::macros::test_iterator_skip_vacant!(StandardSlotMap<_>);
+    crate::macros::test_double_ended_iterator!(StandardSlotMap<_>);
 
     #[test]
     fn test_slot_reuse() {
