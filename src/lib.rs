@@ -1,3 +1,5 @@
+#![warn(clippy::pedantic)]
+
 mod macros;
 
 pub mod standard;
