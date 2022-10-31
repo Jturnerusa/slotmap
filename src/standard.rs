@@ -4,7 +4,7 @@ use std::ops::{Index, IndexMut};
 use std::slice;
 use std::vec;
 
-use crate::{IntoIterItem, IterItem, IterMutItem, Key};
+use crate::{Generation, IntoIterItem, IterItem, IterMutItem, Key};
 
 type EnumeratedFilterMap<T, F> = iter::FilterMap<iter::Enumerate<T>, F>;
 type IterFn<'a, T> = fn((usize, &'a Slot<T>)) -> Option<IterItem<'a, T>>;
@@ -17,8 +17,8 @@ pub struct IntoIter<T>(EnumeratedFilterMap<vec::IntoIter<Slot<T>>, IntoIterFn<T>
 
 #[derive(Clone, Debug)]
 enum Slot<T> {
-    Occupied(u64, T),
-    Vacant(u64),
+    Occupied(Generation, T),
+    Vacant(Generation),
 }
 
 #[derive(Clone, Default)]
@@ -48,10 +48,11 @@ impl<T> SlotMap<T> {
                 Slot::Occupied(..) => unreachable!(),
             }
         } else {
-            self.slots.push(Slot::Occupied(0, value));
+            let generation = Generation(0);
+            self.slots.push(Slot::Occupied(generation, value));
             Key {
                 index: self.slots.len() - 1,
-                generation: 0,
+                generation,
             }
         }
     }
@@ -59,7 +60,10 @@ impl<T> SlotMap<T> {
     pub fn remove(&mut self, key: Key) -> Option<T> {
         if self.get(key).is_some() {
             self.free.push(key.index);
-            match mem::replace(&mut self.slots[key.index], Slot::Vacant(key.generation + 1)) {
+            match mem::replace(
+                &mut self.slots[key.index],
+                Slot::Vacant(key.generation.next()),
+            ) {
                 Slot::Occupied(_, value) => Some(value),
                 Slot::Vacant(_) => unreachable!(),
             }
