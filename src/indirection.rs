@@ -102,6 +102,16 @@ impl<T> SlotMap<T> {
             _ => None,
         }
     }
+
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.items.len() == 0
+    }
 }
 
 #[cfg(test)]
@@ -110,4 +120,5 @@ mod tests {
 
     crate::macros::test_insert_get!(SlotMap<_>);
     crate::macros::test_remove!(SlotMap<_>);
+    crate::macros::test_len!(SlotMap<_>);
 }
