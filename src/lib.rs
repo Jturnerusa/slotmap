@@ -1,7 +1,6 @@
 #![deny(clippy::pedantic)]
 
 #[allow(dead_code, unused_variables)]
-#[warn(clippy::pedantic)]
 pub mod indirection;
 mod macros;
 pub mod standard;
