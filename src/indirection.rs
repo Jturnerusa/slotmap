@@ -5,9 +5,19 @@ struct Item<T> {
     key: Key,
 }
 
+#[derive(Clone, Copy)]
 enum Slot {
     Occupied(usize),
     Vacant(Generation),
+}
+
+impl Slot {
+    pub fn unwrap_occupied(self) -> usize {
+        match self {
+            Slot::Occupied(i) => i,
+            Slot::Vacant(_) => panic!(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -51,24 +61,43 @@ impl<T> SlotMap<T> {
         }
     }
 
+    #[allow(clippy::match_on_vec_items)]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn remove(&mut self, key: Key) -> Option<T> {
+        if self.get(key).is_some() {
+            let indirect_index = self.slots[key.index].unwrap_occupied();
+            self.free.push(indirect_index);
+            self.slots[key.index] = Slot::Vacant(key.generation.next());
+            if indirect_index == self.items.len() - 1 {
+                self.items.pop().map(|i| i.value)
+            } else {
+                let last_item_index = self.items.last().unwrap().key.index;
+                self.slots[last_item_index] = Slot::Occupied(indirect_index);
+                Some(self.items.swap_remove(indirect_index).value)
+            }
+        } else {
+            None
+        }
+    }
+
     #[must_use]
     pub fn get(&self, key: Key) -> Option<&T> {
-        match self.slots.get(key.index) {
+        match self.slots.get(key.index).copied() {
             Some(Slot::Occupied(indirect_index))
-                if self.items[key.index].key.generation == key.generation =>
+                if self.items[indirect_index].key.generation == key.generation =>
             {
-                Some(&self.items[key.index].value)
+                Some(&self.items[indirect_index].value)
             }
             _ => None,
         }
     }
     #[must_use]
     pub fn get_mut(&mut self, key: Key) -> Option<&mut T> {
-        match self.slots.get(key.index) {
+        match self.slots.get(key.index).copied() {
             Some(Slot::Occupied(indirect_index))
-                if self.items[key.index].key.generation == key.generation =>
+                if self.items[indirect_index].key.generation == key.generation =>
             {
-                Some(&mut self.items[key.index].value)
+                Some(&mut self.items[indirect_index].value)
             }
             _ => None,
         }
@@ -80,4 +109,5 @@ mod tests {
     use super::*;
 
     crate::macros::test_insert_get!(SlotMap<_>);
+    crate::macros::test_remove!(SlotMap<_>);
 }
