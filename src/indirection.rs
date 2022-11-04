@@ -121,4 +121,5 @@ mod tests {
     crate::macros::test_insert_get!(SlotMap<_>);
     crate::macros::test_remove!(SlotMap<_>);
     crate::macros::test_len!(SlotMap<_>);
+    crate::macros::test_uaf!(SlotMap<_>);
 }
