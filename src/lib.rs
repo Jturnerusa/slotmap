@@ -30,6 +30,7 @@ pub mod indirection;
 mod macros;
 pub mod standard;
 
+#[doc(inline)]
 pub use standard::SlotMap as StandardSlotMap;
 
 type IterItem<'a, T> = (Key, &'a T);
