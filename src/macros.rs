@@ -1,3 +1,4 @@
+#[doc(hidden)]
 #[macro_export]
 macro_rules! test_insert_get {
     ($type:ty) => {
@@ -17,6 +18,7 @@ macro_rules! test_insert_get {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! test_remove {
     ($type:ty) => {
@@ -36,6 +38,7 @@ macro_rules! test_remove {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! test_len {
     ($type:ty) => {
@@ -55,6 +58,7 @@ macro_rules! test_len {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! test_uaf {
     ($type:ty) => {
@@ -70,6 +74,7 @@ macro_rules! test_uaf {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! test_iterator {
     ($type:ty) => {
@@ -98,6 +103,7 @@ macro_rules! test_iterator {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! test_iterator_skip_vacant {
     ($type:ty) => {
@@ -124,6 +130,7 @@ macro_rules! test_iterator_skip_vacant {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! test_double_ended_iterator {
     ($type:ty) => {
