@@ -26,9 +26,11 @@
 
 #![deny(clippy::pedantic)]
 
+mod macros;
+
 #[allow(dead_code, unused_variables)]
 pub mod indirection;
-mod macros;
+
 pub mod standard;
 
 #[doc(inline)]
