@@ -8,19 +8,20 @@
 //! // insert a value
 //! let a = slotmap.insert("a".to_owned());
 //!
-//! // access the values via their associated keys
+//! // access the value with its key
 //! assert_eq!(slotmap[a], "a");
 //!
 //! // mutate a value
 //! slotmap[a] = "new a".to_owned();
-//! assert_eq!(slotmap[a], "new a");
 //!
 //! // remove a value
-//! let removed = slotmap.remove(a).unwrap();
-//! assert_eq!(removed.as_str(), "new a");
+//! assert!(matches!(slotmap.remove(a), Some(s) if s.as_str() == "new a"));
 //!
-//! // using a stale key doesn't work
-//! assert!(matches!(slotmap.get(a), None));
+//! // its safe to free twice
+//! assert!(slotmap.remove(a).is_none());
+//!
+//! // trying to access a value after freeing it returns None (indexing will panic)
+//! assert!(slotmap.get(a).is_none());
 //! ```
 
 #![deny(clippy::pedantic)]
