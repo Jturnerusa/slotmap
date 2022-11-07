@@ -23,16 +23,17 @@ enum Slot<T> {
 
 /// A simple and performant slotmap implemented with a simple vector of slots.
 /// # Performance
+/// #### Access
 /// Insertion, removal and access are all constant time operations that are roughly as
 /// fast as indexing a vector.
 ///
 /// Removing values does not require shifting elements like in a vector because slots
 /// are reused. Shrinking the underlying storage is not supported.
-///
+/// #### Iteration
 /// Iteration requires scanning the entire underlying storage in order to skip over vacant
 /// slots. Slotmaps with lots of removed values may have large gaps of vacant slots that
 /// slow down interation. If you need very fast iteration and can tolerate a single layer of
-/// indirection when accessing values you may want to consider using [todo!](todo)
+/// indirection when accessing values you may want to consider using [`IndirectionSlotMap`](crate::IndirectionSlotMap).
 
 #[derive(Clone, Default)]
 pub struct SlotMap<T> {
@@ -49,8 +50,8 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// Inserts a value into the slotmap. This returns a unique [key](`crate::Key`) that can
-    /// later be be used to [access](Self::get) and [remove](Self::remove) values.
+    /// Inserts a value into the slotmap. This returns a unique key that can
+    /// later be be used to access and remove values.
     ///
     /// Insert will reuse vacant slots when they are available.
     #[must_use]
@@ -74,8 +75,8 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// Removes the value associated with [key](Key) from the slotmap.
-    /// This will return [None](None) if provided with a stale [key](Key).
+    /// Removes the value associated with key from the slotmap.
+    /// This will return `None` if provided with a stale key.
     pub fn remove(&mut self, key: Key) -> Option<T> {
         if self.get(key).is_some() {
             self.free.push(key.index);
@@ -91,9 +92,9 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// Returns a shared reference to the value associated with the [key](Key).
+    /// Returns a shared reference to the value associated with the key.
     /// Attempting to retrive a value that has been removed will return [None](None).
-    /// This method should be used instead of [index](Self::index) if you aren't sure
+    /// This method should be used instead of indexing if you aren't sure
     /// if a value still exists.
     #[must_use]
     pub fn get(&self, key: Key) -> Option<&T> {
@@ -103,8 +104,8 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// Returns an exclusive reference to the value associated with the [key](Key) and
-    /// otherwise behaves indentically to [get](Self::get).
+    /// Returns an exclusive reference to the value associated with the key and
+    /// otherwise behaves indentically to `get`.
     #[must_use]
     pub fn get_mut(&mut self, key: Key) -> Option<&mut T> {
         match self.slots.get_mut(key.index) {
