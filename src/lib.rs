@@ -58,7 +58,7 @@ impl Generation {
 /// return incorrect data in use after free situations.
 ///
 /// # Memory use
-/// The key is the size of a [u64](u64) + [usize](usize), which is 16 bytes on 64 bit platforms.
+/// The key is the size of a `u64` + `usize`, which is 16 bytes on 64 bit platforms.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Key {
     index: usize,
