@@ -33,6 +33,9 @@ pub mod standard;
 #[doc(inline)]
 pub use standard::SlotMap as StandardSlotMap;
 
+#[doc(inline)]
+pub use indirection::SlotMap as IndirectionSlotMap;
+
 type IterItem<'a, T> = (Key, &'a T);
 type IterMutItem<'a, T> = (Key, &'a mut T);
 type IntoIterItem<T> = (Key, T);
