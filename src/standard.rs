@@ -22,18 +22,6 @@ enum Slot<T> {
 }
 
 /// A simple and performant slotmap implemented with a simple vector of slots.
-/// # Performance
-/// #### Access
-/// Insertion, removal and access are all constant time operations that are roughly as
-/// fast as indexing a vector.
-///
-/// Removing values does not require shifting elements like in a vector because slots
-/// are reused. Shrinking the underlying storage is not supported.
-/// #### Iteration
-/// Iteration requires scanning the entire underlying storage in order to skip over vacant
-/// slots. Slotmaps with lots of removed values may have large gaps of vacant slots that
-/// slow down interation. If you need very fast iteration and can tolerate a single layer of
-/// indirection when accessing values you may want to consider using [`IndirectionSlotMap`](crate::IndirectionSlotMap).
 
 #[derive(Clone, Default)]
 pub struct SlotMap<T> {
@@ -52,8 +40,19 @@ impl<T> SlotMap<T> {
 
     /// Inserts a value into the slotmap. This returns a unique key that can
     /// later be be used to access and remove values.
+    /// ##### Performance
+    /// Insertion should be roughly as fast as inserting into into a vector,
+    /// or if there are no empty slots pushing onto the end.
+    /// ##### Slot reuse
+    /// Insert will reuse vacant slots when they are available similar to an
+    /// arena.
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
     ///
-    /// Insert will reuse vacant slots when they are available.
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value");
+    /// ```
     #[must_use]
     #[allow(clippy::match_on_vec_items)]
     pub fn insert(&mut self, value: T) -> Key {
@@ -75,8 +74,24 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// Removes the value associated with key from the slotmap.
+    /// Removes the value associated with a key from the slotmap.
     /// This will return `None` if provided with a stale key.
+    /// ##### Performance
+    /// Removing values is roughly as fast as mutating an element
+    /// of a vector. Removing values does not require shifting elements,
+    /// they just get marked as vacant to allow reusing them later.
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value");
+    /// assert!(matches!(
+    ///     slotmap.remove(key),
+    ///     Some("an example value")
+    /// ));
+    /// assert!(slotmap.remove(key).is_none());
+    /// ```
     pub fn remove(&mut self, key: Key) -> Option<T> {
         if self.get(key).is_some() {
             self.free.push(key.index);
@@ -93,9 +108,24 @@ impl<T> SlotMap<T> {
     }
 
     /// Returns a shared reference to the value associated with the key.
-    /// Attempting to retrive a value that has been removed will return [None](None).
-    /// This method should be used instead of indexing if you aren't sure
+    /// Attempting to retrive a value that has been removed will return `None`.
+    /// This method should be used instead of indexing if you aren't sure that
     /// if a value still exists.
+    /// ##### Performance
+    /// Accessing elements should be roughly as fast as indexing a vector.
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value");
+    /// assert!(matches!(
+    ///     slotmap.get(key).copied(),
+    ///     Some("an example value")
+    /// ));
+    /// slotmap.remove(key);
+    /// assert!(slotmap.get(key).is_none());
+    /// ```
     #[must_use]
     pub fn get(&self, key: Key) -> Option<&T> {
         match self.slots.get(key.index) {
@@ -106,6 +136,18 @@ impl<T> SlotMap<T> {
 
     /// Returns an exclusive reference to the value associated with the key and
     /// otherwise behaves indentically to `get`.
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value".to_string());
+    /// *slotmap.get_mut(key).unwrap() += " that has been mutated";
+    /// assert!(matches!(
+    ///     slotmap.get(key).map(|s| s.as_str()),
+    ///     Some("an example value that has been mutated")
+    /// ));
+    /// ```
     #[must_use]
     pub fn get_mut(&mut self, key: Key) -> Option<&mut T> {
         match self.slots.get_mut(key.index) {
@@ -114,6 +156,32 @@ impl<T> SlotMap<T> {
         }
     }
 
+    /// Returns an iterator that yields a (key, value) tuple for every
+    /// occupied slot in the slotmap.
+    /// ##### Performance
+    /// Iterating the `StandardSlotMap` implementation requires scanning the
+    /// entire underlying vector of slots.
+    /// Occupied slots will most likely have "empty" gaps between each other,
+    /// espeically if you are removing a lot of values often and not refilling
+    /// them.
+    /// This may make iteration much slower than it would be on a normal vector.
+    ///
+    /// See [`IndirectionSlotMap`](crate::IndirectionSlotMap) for an implementation that
+    /// provides fast iteration.
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..=10 {
+    ///    let _ = slotmap.insert(i * 2);
+    /// }
+    ///
+    /// for (key, val) in &slotmap {
+    ///    println!("{:?}: {}", key, val);
+    /// }
+    /// ```
     #[must_use]
     pub fn iter<'a>(&'a self) -> Iter<'a, T> {
         Iter(self.slots.as_slice().iter().enumerate().filter_map(
@@ -130,6 +198,21 @@ impl<T> SlotMap<T> {
         ))
     }
 
+    /// See [`StandardSlotMap::iter`](crate::StandardSlotMap::iter)
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..10 {
+    ///     let _ = slotmap.insert(i);
+    /// }
+    ///
+    /// for (_key, val) in &mut slotmap {
+    ///     *val *= 2;
+    /// }
+    /// ```
     #[must_use]
     pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
         IterMut(self.slots.as_mut_slice().iter_mut().enumerate().filter_map(
@@ -147,12 +230,32 @@ impl<T> SlotMap<T> {
     }
 
     /// Returns the number of occupied slots.
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for _ in 0..10 {
+    ///     let _ = slotmap.insert(());
+    /// }
+    ///
+    /// assert_eq!(slotmap.len(), 10);
+    /// ```
     #[must_use]
     pub fn len(&self) -> usize {
         self.slots.len() - self.free.len()
     }
 
     /// Returns true if there are no occupied slots.
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let _ = slotmap.insert(());
+    /// assert!(!slotmap.is_empty());
+    /// ```
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
