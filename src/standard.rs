@@ -21,7 +21,7 @@ enum Slot<T> {
     Vacant(Generation),
 }
 
-/// A simple and performant slotmap implemented with a simple vector of slots.
+/// A slotmap implemented with a simple vector of slots.
 
 #[derive(Clone, Default)]
 pub struct SlotMap<T> {
