@@ -60,14 +60,7 @@ impl Generation {
 }
 
 /// A unique handle to a value in a slotmap.
-///
-/// The key stores a generation that gets compared to the generation stored in a
-/// specific slot inside of the slotmap. When these generations match we know that
-/// your key is not stale. Without this check, you would not be able to detect if
-/// a key has already had it's value removed, which would cause the slotmap to
-/// return incorrect data in use after free situations.
-///
-/// # Memory use
+/// ##### Memory use
 /// The key is the size of a `u64` + `usize`, which is 16 bytes on 64 bit platforms.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Key {
