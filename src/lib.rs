@@ -1,28 +1,35 @@
 //! A map-like data structure that provides weak, light weight handles to inserted values.
 //! # Example use
 //! ```
-//! use slotmap::StandardSlotMap;
+//! use slotmap::StandardSlotMap as SlotMap;
 //!
-//! let mut slotmap = StandardSlotMap::new();
+//! let mut slotmap = SlotMap::new();
 //!
-//! // insert a value
-//! let a = slotmap.insert("a".to_owned());
+//! // inserting a value returns a key
+//! let key = slotmap.insert("hello".to_string());
 //!
-//! // access the value with its key
-//! assert_eq!(slotmap[a], "a");
+//! // keys are lightweight and impl Copy
+//! let array_of_keys = [key; 10];
 //!
-//! // mutate a value
-//! slotmap[a] = "new a".to_owned();
+//! // we can use keys to access values
+//! slotmap[key] += " world!";
+//! assert_eq!(slotmap[key].as_str(), "hello world!");
 //!
-//! // remove a value
-//! assert!(matches!(slotmap.remove(a), Some(s) if s.as_str() == "new a"));
+//! // removing values moves them back to the caller
+//! // in this case we just ignore the removed string
+//! let _ = slotmap.remove(key);
 //!
-//! // its safe to free twice
-//! assert!(slotmap.remove(a).is_none());
+//! // trying to use stale keys is harmless
+//! assert!(matches!(slotmap.get(key), None));
 //!
-//! // trying to access a value after freeing it returns None (indexing will panic)
-//! assert!(slotmap.get(a).is_none());
+//! // iterating the keys and values is supported
+//! for (k, v) in &slotmap {
+//!     println!("{:?} {}", k, v);
+//! }
 //! ```
+//! # Note
+//! You should probably consider using the more widely used and battle tested
+//! [slotmap crate](https://crates.io/crates/slotmap) rather than this one.
 
 #![deny(clippy::pedantic)]
 
