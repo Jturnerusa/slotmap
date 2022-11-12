@@ -10,10 +10,18 @@ type EnumeratedFilterMap<T, F> = iter::FilterMap<iter::Enumerate<T>, F>;
 type IterFn<'a, T> = fn((usize, &'a Slot<T>)) -> Option<IterItem<'a, T>>;
 type IterMutFn<'a, T> = fn((usize, &'a mut Slot<T>)) -> Option<IterMutItem<'a, T>>;
 type IntoIterFn<T> = fn((usize, Slot<T>)) -> Option<IntoIterItem<T>>;
+type ValuesFn<'a, T> = fn(IterItem<'a, T>) -> &'a T;
+type ValuesMutFn<'a, T> = fn(IterMutItem<'a, T>) -> &'a mut T;
+type IntoValuesFn<T> = fn(IntoIterItem<T>) -> T;
+type KeysFn<'a, T> = fn(IterItem<'a, T>) -> Key;
 
 pub struct Iter<'a, T>(EnumeratedFilterMap<slice::Iter<'a, Slot<T>>, IterFn<'a, T>>);
 pub struct IterMut<'a, T>(EnumeratedFilterMap<slice::IterMut<'a, Slot<T>>, IterMutFn<'a, T>>);
 pub struct IntoIter<T>(EnumeratedFilterMap<vec::IntoIter<Slot<T>>, IntoIterFn<T>>);
+pub struct Values<'a, T>(iter::Map<Iter<'a, T>, ValuesFn<'a, T>>);
+pub struct ValuesMut<'a, T>(iter::Map<IterMut<'a, T>, ValuesMutFn<'a, T>>);
+pub struct IntoValues<T>(iter::Map<IntoIter<T>, IntoValuesFn<T>>);
+pub struct Keys<'a, T>(iter::Map<Iter<'a, T>, KeysFn<'a, T>>);
 
 #[derive(Clone, Debug)]
 enum Slot<T> {
@@ -229,6 +237,26 @@ impl<T> SlotMap<T> {
         ))
     }
 
+    #[must_use]
+    pub fn values(&self) -> Values<T> {
+        Values(self.iter().map(|(_, val)| val))
+    }
+
+    #[must_use]
+    pub fn values_mut(&mut self) -> ValuesMut<T> {
+        ValuesMut(self.iter_mut().map(|(_, val)| val))
+    }
+
+    #[must_use]
+    pub fn into_values(self) -> IntoValues<T> {
+        IntoValues(self.into_iter().map(|(_, val)| val))
+    }
+
+    #[must_use]
+    pub fn keys(&self) -> Keys<T> {
+        Keys(self.iter().map(|(key, _)| key))
+    }
+
     /// Returns the number of occupied slots.
     /// ##### Example
     /// ```
@@ -335,6 +363,38 @@ impl<T> Iterator for IntoIter<T> {
     }
 }
 
+impl<'a, T> Iterator for Values<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+impl<'a, T> Iterator for ValuesMut<'a, T> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+impl<T> Iterator for IntoValues<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+impl<'a, T> Iterator for Keys<'a, T> {
+    type Item = Key;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
 impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back()
@@ -353,6 +413,30 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
     }
 }
 
+impl<'a, T> DoubleEndedIterator for Values<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for ValuesMut<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoValues<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Keys<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -364,6 +448,8 @@ mod tests {
     crate::macros::test_iterator!(SlotMap<_>);
     crate::macros::test_iterator_skip_vacant!(SlotMap<_>);
     crate::macros::test_double_ended_iterator!(SlotMap<_>);
+    crate::macros::test_values_iterator!(SlotMap<_>);
+    crate::macros::test_keys_iterator!(SlotMap<_>);
 
     #[test]
     #[allow(unused_must_use)]

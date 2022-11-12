@@ -159,10 +159,60 @@ macro_rules! test_double_ended_iterator {
     };
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! test_values_iterator {
+    ($type:ty) => {
+        #[test]
+        fn test_values_iterator() {
+            let mut slotmap = <$type>::new();
+            let _ = slotmap.insert("a");
+            let _ = slotmap.insert("b");
+            let _ = slotmap.insert("c");
+            let mut values = slotmap.values();
+            assert_eq!(values.next().copied().unwrap(), "a");
+            assert_eq!(values.next().copied().unwrap(), "b");
+            assert_eq!(values.next().copied().unwrap(), "c");
+            assert_eq!(values.next(), None);
+            let mut values = slotmap.values_mut();
+            assert_eq!(values.next().copied().unwrap(), "a");
+            assert_eq!(values.next().copied().unwrap(), "b");
+            assert_eq!(values.next().copied().unwrap(), "c");
+            assert_eq!(values.next(), None);
+            let mut values = slotmap.into_values();
+            assert_eq!(values.next().unwrap(), "a");
+            assert_eq!(values.next().unwrap(), "b");
+            assert_eq!(values.next().unwrap(), "c");
+            assert_eq!(values.next(), None);
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! test_keys_iterator {
+    ($type:ty) => {
+        #[test]
+        fn test_keys_iterator() {
+            let mut slotmap = <$type>::new();
+            let a = slotmap.insert("a");
+            let b = slotmap.insert("b");
+            let c = slotmap.insert("c");
+            let mut keys = slotmap.keys();
+            assert_eq!(keys.next().unwrap(), a);
+            assert_eq!(keys.next().unwrap(), b);
+            assert_eq!(keys.next().unwrap(), c);
+            assert_eq!(keys.next(), None);
+        }
+    };
+}
+
 pub use test_double_ended_iterator;
 pub use test_insert_get;
 pub use test_iterator;
 pub use test_iterator_skip_vacant;
+pub use test_keys_iterator;
 pub use test_len;
 pub use test_remove;
 pub use test_uaf;
+pub use test_values_iterator;
