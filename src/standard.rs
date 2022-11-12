@@ -164,6 +164,23 @@ impl<T> SlotMap<T> {
         }
     }
 
+    /// Checks whether a key is still valid.
+    ///
+    /// This is functionally equivalent to calling `is_some`
+    /// on the `Option` returned by `get`.
+    /// ##### Example
+    /// ```
+    /// use slotmap::StandardSlotMap as SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value");
+    /// assert!(slotmap.contains_key(key));
+    /// ```
+    #[must_use]
+    pub fn contains_key(&self, key: Key) -> bool {
+        self.get(key).is_some()
+    }
+
     /// Returns an iterator that yields a (key, value) tuple for every
     /// occupied slot in the slotmap.
     /// ##### Performance
