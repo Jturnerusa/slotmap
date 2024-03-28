@@ -8,8 +8,9 @@
 
 #![deny(clippy::pedantic)]
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct Generation(pub u64);
+use std::iter;
+use std::slice;
+use std::vec;
 
 /// A unique handle to a value in a slotmap.
 /// ##### Memory use
@@ -20,9 +21,8 @@ pub struct Key {
     generation: Generation,
 }
 
-use std::iter;
-use std::slice;
-use std::vec;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Generation(pub u64);
 
 struct Item<T> {
     value: T,
