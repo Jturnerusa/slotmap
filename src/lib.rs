@@ -82,7 +82,21 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// see: [`StandardSlotMap::insert`](crate::StandardSlotMap::insert)
+    /// Inserts a value into the slotmap. This returns a unique key that can
+    /// later be be used to access and remove values.
+    /// ##### Performance
+    /// Insertion should be roughly as fast as inserting into into a vector,
+    /// or if there are no empty slots pushing onto the end.
+    /// ##### Slot reuse
+    /// Insert will reuse vacant slots when they are available similar to an
+    /// arena.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value");
+    /// ```
     #[must_use]
     #[allow(clippy::match_on_vec_items)]
     pub fn insert(&mut self, value: T) -> Key {
@@ -107,7 +121,24 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// see: [`StandardSlotMap::remove`](crate::StandardSlotMap::remove)
+    /// Removes the value associated with a key from the slotmap.
+    /// This will return `None` if provided with a stale key.
+    /// ##### Performance
+    /// Removing values is roughly as fast as mutating an element
+    /// of a vector. Removing values does not require shifting elements,
+    /// they just get marked as vacant to allow reusing them later.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value");
+    /// assert!(matches!(
+    ///     slotmap.remove(key),
+    ///     Some("an example value")
+    /// ));
+    /// assert!(slotmap.remove(key).is_none());
+    /// ```
     #[allow(clippy::match_on_vec_items)]
     #[allow(clippy::missing_panics_doc)]
     pub fn remove(&mut self, key: Key) -> Option<T> {
@@ -127,7 +158,25 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// see: [`StandardSlotMap::get`](crate::StandardSlotMap::get)
+    /// Returns a shared reference to the value associated with the key.
+    /// Attempting to retrive a value that has been removed will return `None`.
+    /// This method should be used instead of indexing if you aren't sure that
+    /// if a value still exists.
+    /// ##### Performance
+    /// Accessing elements should be roughly as fast as indexing a vector.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value");
+    /// assert!(matches!(
+    ///     slotmap.get(key).copied(),
+    ///     Some("an example value")
+    /// ));
+    /// slotmap.remove(key);
+    /// assert!(slotmap.get(key).is_none());
+    /// ```
     #[must_use]
     pub fn get(&self, key: Key) -> Option<&T> {
         match self.slots.get(key.index).copied() {
@@ -140,7 +189,20 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// see: [`StandardSlotMap::get_mut`](crate::StandardSlotMap::get_mut)
+    /// Returns an exclusive reference to the value associated with the key and
+    /// otherwise behaves indentically to `get`.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value".to_string());
+    /// *slotmap.get_mut(key).unwrap() += " that has been mutated";
+    /// assert!(matches!(
+    ///     slotmap.get(key).map(|s| s.as_str()),
+    ///     Some("an example value that has been mutated")
+    /// ));
+    /// ```
     #[must_use]
     pub fn get_mut(&mut self, key: Key) -> Option<&mut T> {
         match self.slots.get(key.index).copied() {
@@ -153,13 +215,33 @@ impl<T> SlotMap<T> {
         }
     }
 
-    /// see: [`StandardSlotMap::len`](crate::StandardSlotMap::len)
+    /// Returns the number of occupied slots.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for _ in 0..10 {
+    ///     let _ = slotmap.insert(());
+    /// }
+    ///
+    /// assert_eq!(slotmap.len(), 10);
+    /// ```
     #[must_use]
     pub fn len(&self) -> usize {
         self.items.len()
     }
 
-    /// see: [`StandardSlotMap::is_empty`](crate::StandardSlotMap::is_empty)
+    /// Returns true if there are no occupied slots.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let _ = slotmap.insert(());
+    /// assert!(!slotmap.is_empty());
+    /// ```
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.items.len() == 0
