@@ -8,10 +8,6 @@
 
 #![deny(clippy::pedantic)]
 
-use std::iter;
-use std::slice;
-use std::vec;
-
 /// A unique handle to a value in a slotmap.
 /// ##### Memory use
 /// The key is the size of a `u64` + `usize`, which is 16 bytes on 64 bit platforms.
@@ -245,6 +241,23 @@ impl<T> SlotMap<T> {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.items.len() == 0
+    }
+
+    /// Checks whether a key is still valid.
+    ///
+    /// This is functionally equivalent to calling `is_some`
+    /// on the `Option` returned by `get`.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    /// let key = slotmap.insert("an example value");
+    /// assert!(slotmap.contains_key(key));
+    /// ```
+    #[must_use]
+    pub fn contains_key(&self, key: Key) -> bool {
+        self.get(key).is_some()
     }
 }
 
