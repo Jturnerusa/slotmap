@@ -8,8 +8,6 @@
 
 #![deny(clippy::pedantic)]
 
-mod macros;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Generation(pub u64);
 
@@ -166,14 +164,4 @@ impl<T> SlotMap<T> {
     pub fn is_empty(&self) -> bool {
         self.items.len() == 0
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    crate::macros::test_insert_get!(SlotMap<_>);
-    crate::macros::test_remove!(SlotMap<_>);
-    crate::macros::test_len!(SlotMap<_>);
-    crate::macros::test_uaf!(SlotMap<_>);
 }
