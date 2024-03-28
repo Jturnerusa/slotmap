@@ -165,3 +165,59 @@ impl<T> SlotMap<T> {
         self.items.len() == 0
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_insert_get_remove() {
+        let mut slotmap = SlotMap::new();
+        let a = slotmap.insert("a");
+        let b = slotmap.insert("b");
+        let c = slotmap.insert("c");
+        assert_eq!(*slotmap.get(a).unwrap(), "a");
+        assert_eq!(*slotmap.get(b).unwrap(), "b");
+        assert_eq!(*slotmap.get(c).unwrap(), "c");
+        assert_eq!(*slotmap.get_mut(a).unwrap(), "a");
+        assert_eq!(*slotmap.get_mut(b).unwrap(), "b");
+        assert_eq!(*slotmap.get_mut(c).unwrap(), "c");
+    }
+
+    #[test]
+    fn test_remove() {
+        let mut slotmap = SlotMap::new();
+        let a = slotmap.insert("a");
+        let b = slotmap.insert("b");
+        let c = slotmap.insert("c");
+        assert_eq!(slotmap.remove(a).unwrap(), "a");
+        assert_eq!(slotmap.remove(b).unwrap(), "b");
+        assert_eq!(slotmap.remove(c).unwrap(), "c");
+        assert_eq!(slotmap.get(a), None);
+        assert_eq!(slotmap.get(b), None);
+        assert_eq!(slotmap.get(c), None);
+    }
+
+    #[test]
+    fn test_len() {
+        let mut slotmap = SlotMap::new();
+        assert!(slotmap.is_empty());
+        let a = slotmap.insert(());
+        let b = slotmap.insert(());
+        let c = slotmap.insert(());
+        assert_eq!(slotmap.len(), 3);
+        slotmap.remove(a);
+        slotmap.remove(b);
+        slotmap.remove(c);
+        assert!(slotmap.is_empty());
+    }
+
+    #[test]
+    fn test_uaf() {
+        let mut slotmap = SlotMap::new();
+        let a = slotmap.insert("a");
+        slotmap.remove(a);
+        let b = slotmap.insert("b");
+        assert_eq!(slotmap.get(a), None);
+        assert_eq!(*slotmap.get(b).unwrap(), "b");
+    }
+}
