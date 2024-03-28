@@ -1,3 +1,5 @@
+#!/bin/false
+
 //! A map-like data structure that provides weak, light weight handles to inserted values.
 //!
 //! # Note
