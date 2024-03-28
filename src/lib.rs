@@ -10,10 +10,6 @@
 
 mod macros;
 
-type IterItem<'a, T> = (Key, &'a T);
-type IterMutItem<'a, T> = (Key, &'a mut T);
-type IntoIterItem<T> = (Key, T);
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Generation(pub u64);
 
@@ -29,14 +25,6 @@ pub struct Key {
 use std::iter;
 use std::slice;
 use std::vec;
-
-type IterFn<'a, T> = fn(&'a Item<T>) -> IterItem<T>;
-type IterMutFn<'a, T> = fn(&'a mut Item<T>) -> IterMutItem<T>;
-type IntoIterFn<T> = fn(Item<T>) -> IntoIterItem<T>;
-
-pub struct Iter<'a, T>(iter::Map<slice::Iter<'a, Item<T>>, IterFn<'a, T>>);
-pub struct IterMut<'a, T>(iter::Map<slice::IterMut<'a, Item<T>>, IterMutFn<'a, T>>);
-pub struct IntoIter<T>(iter::Map<vec::IntoIter<Item<T>>, IntoIterFn<T>>);
 
 struct Item<T> {
     value: T,
@@ -178,25 +166,6 @@ impl<T> SlotMap<T> {
     pub fn is_empty(&self) -> bool {
         self.items.len() == 0
     }
-
-    #[must_use]
-    pub fn iter(&self) -> Iter<T> {
-        Iter(
-            self.items
-                .as_slice()
-                .iter()
-                .map(|item| (item.key, &item.value)),
-        )
-    }
-    #[must_use]
-    pub fn iter_mut(&mut self) -> IterMut<T> {
-        IterMut(
-            self.items
-                .as_mut_slice()
-                .iter_mut()
-                .map(|item| (item.key, &mut item.value)),
-        )
-    }
 }
 
 #[cfg(test)]
@@ -207,57 +176,4 @@ mod tests {
     crate::macros::test_remove!(SlotMap<_>);
     crate::macros::test_len!(SlotMap<_>);
     crate::macros::test_uaf!(SlotMap<_>);
-    crate::macros::test_iterator!(SlotMap<_>);
-    crate::macros::test_iterator_skip_vacant!(SlotMap<_>);
-}
-
-impl<'a, T> IntoIterator for &'a SlotMap<T> {
-    type Item = IterItem<'a, T>;
-    type IntoIter = Iter<'a, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-
-impl<'a, T> IntoIterator for &'a mut SlotMap<T> {
-    type Item = IterMutItem<'a, T>;
-    type IntoIter = IterMut<'a, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter_mut()
-    }
-}
-
-impl<T> IntoIterator for SlotMap<T> {
-    type Item = IntoIterItem<T>;
-    type IntoIter = IntoIter<T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        IntoIter(self.items.into_iter().map(|item| (item.key, item.value)))
-    }
-}
-
-impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = IterItem<'a, T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
-}
-
-impl<'a, T> Iterator for IterMut<'a, T> {
-    type Item = IterMutItem<'a, T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
-}
-
-impl<T> Iterator for IntoIter<T> {
-    type Item = IntoIterItem<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
 }
