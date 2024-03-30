@@ -6,7 +6,16 @@
 //! You should probably consider using the more widely used and battle tested
 //! [slotmap crate](https://crates.io/crates/slotmap) rather than this one.
 
+#![feature(type_alias_impl_trait)]
 #![deny(clippy::pedantic)]
+
+type DoubleEndedIter<'a, T: 'a> = impl DoubleEndedIterator<Item = (Key, &'a T)>;
+type DoubleEndedIterMut<'a, T: 'a> = impl DoubleEndedIterator<Item = (Key, &'a mut T)>;
+type DoubleEndedIntoIter<T> = impl DoubleEndedIterator<Item = (Key, T)>;
+
+pub struct Iter<'a, T: 'a>(DoubleEndedIter<'a, T>);
+pub struct IterMut<'a, T: 'a>(DoubleEndedIterMut<'a, T>);
+pub struct IntoIter<T>(DoubleEndedIntoIter<T>);
 
 /// A unique handle to a value in a slotmap.
 /// ##### Memory use
@@ -258,6 +267,113 @@ impl<T> SlotMap<T> {
     #[must_use]
     pub fn contains_key(&self, key: Key) -> bool {
         self.get(key).is_some()
+    }
+    /// Returns an iterator that yields a (key, value) tuple for every
+    /// occupied slot in the slotmap.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..=10 {
+    ///    let _ = slotmap.insert(i * 2);
+    /// }
+    ///
+    /// for (key, val) in &slotmap {
+    ///    println!("{:?}: {}", key, val);
+    /// }
+    /// ```
+    #[must_use]
+    pub fn iter(&self) -> Iter<T> {
+        Iter(self.items.iter().map(|item| (item.key, &item.value)))
+    }
+
+    /// See [`SlotMap::iter`](crate::SlotMap::iter)
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..10 {
+    ///     let _ = slotmap.insert(i);
+    /// }
+    ///
+    /// for (_key, val) in &mut slotmap {
+    ///     *val *= 2;
+    /// }
+    /// ```
+    #[must_use]
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        IterMut(
+            self.items
+                .iter_mut()
+                .map(|item| (item.key, &mut item.value)),
+        )
+    }
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = (Key, &'a T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = (Key, &'a mut T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = (Key, T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a SlotMap<T> {
+    type Item = (Key, &'a T);
+    type IntoIter = Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut SlotMap<T> {
+    type Item = (Key, &'a mut T);
+    type IntoIter = IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
+impl<T> IntoIterator for SlotMap<T> {
+    type Item = (Key, T);
+    type IntoIter = IntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter(self.items.into_iter().map(|item| (item.key, item.value)))
     }
 }
 
