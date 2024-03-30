@@ -44,10 +44,8 @@ enum Slot {
 ///
 /// # Performance
 /// #### Access
-/// Insertion, removal and access are still constant time operations like in `StandardSlotMap`.
-/// Unlike `StandardSlotMap`, each of the previously mentioned operations
-/// requires indexing into two vectors, the first vector index reads an element storing an
-/// indirect index that points into the second vector, which is where the "indirection" name comes from!
+/// Insertion, removal and access are constant time operations and involve
+/// a single level of indirection to map the slot index to the item index.
 ///
 /// Removing values doesn't require shifting any elements. This is done using
 /// [`Vec::swap_remove`](Vec::swap_remove) interally and then updating the indirect indexes as needed.
@@ -89,9 +87,6 @@ impl<T> SlotMap<T> {
 
     /// Inserts a value into the slotmap. This returns a unique key that can
     /// later be be used to access and remove values.
-    /// ##### Performance
-    /// Insertion should be roughly as fast as inserting into into a vector,
-    /// or if there are no empty slots pushing onto the end.
     /// ##### Slot reuse
     /// Insert will reuse vacant slots when they are available similar to an
     /// arena.
@@ -128,10 +123,6 @@ impl<T> SlotMap<T> {
 
     /// Removes the value associated with a key from the slotmap.
     /// This will return `None` if provided with a stale key.
-    /// ##### Performance
-    /// Removing values is roughly as fast as mutating an element
-    /// of a vector. Removing values does not require shifting elements,
-    /// they just get marked as vacant to allow reusing them later.
     /// ##### Example
     /// ```
     /// use slotmap::SlotMap;
@@ -166,9 +157,7 @@ impl<T> SlotMap<T> {
     /// Returns a shared reference to the value associated with the key.
     /// Attempting to retrive a value that has been removed will return `None`.
     /// This method should be used instead of indexing if you aren't sure that
-    /// if a value still exists.
-    /// ##### Performance
-    /// Accessing elements should be roughly as fast as indexing a vector.
+    /// a value still exists.
     /// ##### Example
     /// ```
     /// use slotmap::SlotMap;
