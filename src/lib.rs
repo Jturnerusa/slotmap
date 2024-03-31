@@ -16,6 +16,10 @@ type DoubleEndedIntoIter<T> = impl DoubleEndedIterator<Item = (Key, T)>;
 pub struct Iter<'a, T: 'a>(DoubleEndedIter<'a, T>);
 pub struct IterMut<'a, T: 'a>(DoubleEndedIterMut<'a, T>);
 pub struct IntoIter<T>(DoubleEndedIntoIter<T>);
+pub struct Values<'a, T>(Iter<'a, T>);
+pub struct ValuesMut<'a, T>(IterMut<'a, T>);
+pub struct IntoValues<T>(IntoIter<T>);
+pub struct Keys<'a, T>(Iter<'a, T>);
 
 /// A unique handle to a value in a slotmap.
 /// ##### Memory use
@@ -301,6 +305,86 @@ impl<T> SlotMap<T> {
                 .map(|item| (item.key, &mut item.value)),
         )
     }
+
+    /// Iterate over values in the slotmap.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..10 {
+    ///     let _ = slotmap.insert(i);
+    /// }
+    ///
+    /// for value in slotmap.values() {
+    ///     println!("{value}");
+    /// }
+    #[must_use]
+    pub fn values(&self) -> Values<T> {
+        Values(self.iter())
+    }
+
+    /// See [`SlotMap::values`](crate::SlotMap::values)
+    ///
+    /// Iterate over mutable references to values in the slotmap.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..10 {
+    ///     let _ = slotmap.insert(i);
+    /// }
+    ///
+    /// for mut value in slotmap.values_mut() {
+    ///     *value += 1;
+    /// }
+    #[must_use]
+    pub fn values_mut(&mut self) -> ValuesMut<T> {
+        ValuesMut(self.iter_mut())
+    }
+
+    /// See [`SlotMap::values`](crate::SlotMap::values)
+    ///
+    /// Consume slotmap and iterate over the keys.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..10 {
+    ///     let _ = slotmap.insert(i);
+    /// }
+    ///
+    /// let values = slotmap.into_values().collect::<Vec<i32>>();
+    /// ```
+    #[must_use]
+    pub fn into_values(self) -> IntoValues<T> {
+        IntoValues(self.into_iter())
+    }
+
+    /// Iterate over keys in the slotmap.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..10 {
+    ///     let _ = slotmap.insert(i);
+    /// }
+    ///
+    /// for key in slotmap.keys() {
+    ///     println!("{:?}", key);
+    /// }
+    /// ```
+    #[must_use]
+    pub fn keys(&self) -> Keys<T> {
+        Keys(self.iter())
+    }
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -324,6 +408,34 @@ impl<T> Iterator for IntoIter<T> {
     }
 }
 
+impl<'a, T> Iterator for Values<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.by_ref().map(|(_, value)| value).next()
+    }
+}
+
+impl<'a, T> Iterator for ValuesMut<'a, T> {
+    type Item = &'a mut T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.by_ref().map(|(_, value)| value).next()
+    }
+}
+
+impl<T> Iterator for IntoValues<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.by_ref().map(|(_, value)| value).next()
+    }
+}
+
+impl<'a, T> Iterator for Keys<'a, T> {
+    type Item = Key;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.by_ref().map(|(key, _)| key).next()
+    }
+}
+
 impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back()
@@ -339,6 +451,30 @@ impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
 impl<T> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Values<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.by_ref().map(|(_, value)| value).next_back()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for ValuesMut<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.by_ref().map(|(_, value)| value).next_back()
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoValues<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.by_ref().map(|(_, value)| value).next_back()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Keys<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.by_ref().map(|(key, _)| key).next_back()
     }
 }
 
