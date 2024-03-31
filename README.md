@@ -1,5 +1,5 @@
  A map-like data structure that provides weak, light weight handles to inserted values.
- ```
+ ``` rust
  use slotmap::SlotMap;
 
  let mut slotmap = SlotMap::new();
