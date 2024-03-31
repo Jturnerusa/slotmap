@@ -9,6 +9,8 @@
 #![feature(type_alias_impl_trait)]
 #![deny(clippy::pedantic)]
 
+use std::ops::{Index, IndexMut};
+
 type DoubleEndedIter<'a, T: 'a> = impl DoubleEndedIterator<Item = (Key, &'a T)>;
 type DoubleEndedIterMut<'a, T: 'a> = impl DoubleEndedIterator<Item = (Key, &'a mut T)>;
 type DoubleEndedIntoIter<T> = impl DoubleEndedIterator<Item = (Key, T)>;
@@ -384,6 +386,19 @@ impl<T> SlotMap<T> {
     #[must_use]
     pub fn keys(&self) -> Keys<T> {
         Keys(self.iter())
+    }
+}
+
+impl<T> Index<Key> for SlotMap<T> {
+    type Output = T;
+    fn index(&self, index: Key) -> &Self::Output {
+        self.get(index).unwrap()
+    }
+}
+
+impl<T> IndexMut<Key> for SlotMap<T> {
+    fn index_mut(&mut self, index: Key) -> &mut Self::Output {
+        self.get_mut(index).unwrap()
     }
 }
 
