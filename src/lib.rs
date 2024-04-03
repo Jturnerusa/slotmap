@@ -663,4 +663,65 @@ mod test {
             [(_, 9), (_, 8), (_, 7), (_, 6), (_, 5)]
         ));
     }
+
+    #[test]
+    fn test_values() {
+        let mut slotmap = SlotMap::new();
+        for x in 0..10 {
+            let _ = slotmap.insert(x);
+        }
+        let mut it = slotmap.values();
+        let a = it.by_ref().take(5).collect::<Vec<_>>();
+        let b = it.by_ref().rev().collect::<Vec<_>>();
+        assert!(matches!(a.as_slice(), [0, 1, 2, 3, 4]));
+        assert!(matches!(b.as_slice(), [9, 8, 7, 6, 5]));
+    }
+
+    #[test]
+    fn test_values_mut() {
+        let mut slotmap = SlotMap::new();
+        for x in 0..10 {
+            let _ = slotmap.insert(x);
+        }
+        let mut it = slotmap.values_mut();
+        let a = it.by_ref().take(5).collect::<Vec<_>>();
+        let b = it.by_ref().rev().collect::<Vec<_>>();
+        assert!(matches!(a.as_slice(), [0, 1, 2, 3, 4]));
+        assert!(matches!(b.as_slice(), [9, 8, 7, 6, 5]));
+    }
+
+    #[test]
+    fn test_into_values() {
+        let mut slotmap = SlotMap::new();
+        for x in 0..10 {
+            let _ = slotmap.insert(x);
+        }
+        let mut it = slotmap.into_values();
+        let a = it.by_ref().take(5).collect::<Vec<_>>();
+        let b = it.by_ref().rev().collect::<Vec<_>>();
+        assert!(matches!(a.as_slice(), [0, 1, 2, 3, 4]));
+        assert!(matches!(b.as_slice(), [9, 8, 7, 6, 5]));
+    }
+
+    #[test]
+    fn test_keys() {
+        let mut slotmap = SlotMap::new();
+        let mut keys = Vec::new();
+        for x in 0..10 {
+            keys.push(slotmap.insert(x));
+        }
+        let mut it = slotmap.keys();
+        let a = it.by_ref().take(5).collect::<Vec<_>>();
+        let b = it.by_ref().rev().take(5).collect::<Vec<_>>();
+        assert_eq!(keys[0], a[0]);
+        assert_eq!(keys[1], a[1]);
+        assert_eq!(keys[2], a[2]);
+        assert_eq!(keys[3], a[3]);
+        assert_eq!(keys[4], a[4]);
+        assert_eq!(keys[9], b[0]);
+        assert_eq!(keys[8], b[1]);
+        assert_eq!(keys[7], b[2]);
+        assert_eq!(keys[6], b[3]);
+        assert_eq!(keys[5], b[4]);
+    }
 }
