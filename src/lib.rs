@@ -31,18 +31,13 @@
 //! You should probably consider using the more widely used and battle tested
 //! [slotmap crate](https://crates.io/crates/slotmap) rather than this one.
 
-#![feature(type_alias_impl_trait)]
 #![deny(clippy::pedantic)]
 
 use std::ops::{Index, IndexMut};
 
-type DoubleEndedIter<'a, T: 'a> = impl DoubleEndedIterator<Item = (Key, &'a T)>;
-type DoubleEndedIterMut<'a, T: 'a> = impl DoubleEndedIterator<Item = (Key, &'a mut T)>;
-type DoubleEndedIntoIter<T> = impl DoubleEndedIterator<Item = (Key, T)>;
-
-pub struct Iter<'a, T: 'a>(DoubleEndedIter<'a, T>);
-pub struct IterMut<'a, T: 'a>(DoubleEndedIterMut<'a, T>);
-pub struct IntoIter<T>(DoubleEndedIntoIter<T>);
+pub struct Iter<'a, T: 'a>(std::slice::Iter<'a, Item<T>>);
+pub struct IterMut<'a, T: 'a>(std::slice::IterMut<'a, Item<T>>);
+pub struct IntoIter<T>(std::vec::IntoIter<Item<T>>);
 pub struct Values<'a, T>(Iter<'a, T>);
 pub struct ValuesMut<'a, T>(IterMut<'a, T>);
 pub struct IntoValues<T>(IntoIter<T>);
@@ -60,6 +55,7 @@ pub struct Key {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Generation(pub u64);
 
+#[derive(Clone, Copy)]
 struct Item<T> {
     value: T,
     key: Key,
@@ -84,7 +80,7 @@ enum Slot {
 /// #### Iteration
 /// All key value pairs are stored contigously in a vector, so iteration is as
 /// fast as possible.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct SlotMap<T> {
     items: Vec<Item<T>>,
     slots: Vec<Slot>,
@@ -306,7 +302,7 @@ impl<T> SlotMap<T> {
     /// ```
     #[must_use]
     pub fn iter(&self) -> Iter<T> {
-        Iter(self.items.iter().map(|item| (item.key, &item.value)))
+        Iter(self.items.iter())
     }
 
     /// See [`SlotMap::iter`](crate::SlotMap::iter)
@@ -326,11 +322,7 @@ impl<T> SlotMap<T> {
     /// ```
     #[must_use]
     pub fn iter_mut(&mut self) -> IterMut<T> {
-        IterMut(
-            self.items
-                .iter_mut()
-                .map(|item| (item.key, &mut item.value)),
-        )
+        IterMut(self.items.iter_mut())
     }
 
     /// Iterate over values in the slotmap.
@@ -430,21 +422,24 @@ impl<T> IndexMut<Key> for SlotMap<T> {
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = (Key, &'a T);
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        self.0.by_ref().map(|item| (item.key, &item.value)).next()
     }
 }
 
 impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = (Key, &'a mut T);
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        self.0
+            .by_ref()
+            .map(|item| (item.key, &mut item.value))
+            .next()
     }
 }
 
 impl<T> Iterator for IntoIter<T> {
     type Item = (Key, T);
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        self.0.by_ref().map(|item| (item.key, item.value)).next()
     }
 }
 
@@ -478,19 +473,28 @@ impl<'a, T> Iterator for Keys<'a, T> {
 
 impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back()
+        self.0
+            .by_ref()
+            .map(|item| (item.key, &item.value))
+            .next_back()
     }
 }
 
 impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back()
+        self.0
+            .by_ref()
+            .map(|item| (item.key, &mut item.value))
+            .next_back()
     }
 }
 
 impl<T> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back()
+        self.0
+            .by_ref()
+            .map(|item| (item.key, item.value))
+            .next_back()
     }
 }
 
@@ -538,7 +542,7 @@ impl<T> IntoIterator for SlotMap<T> {
     type Item = (Key, T);
     type IntoIter = IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter(self.items.into_iter().map(|item| (item.key, item.value)))
+        IntoIter(self.items.into_iter())
     }
 }
 
@@ -595,5 +599,68 @@ mod test {
         let b = slotmap.insert("b");
         assert_eq!(slotmap.get(a), None);
         assert_eq!(*slotmap.get(b).unwrap(), "b");
+    }
+
+    #[test]
+    fn test_iter() {
+        let mut slotmap = SlotMap::new();
+        let mut keys = Vec::new();
+        for x in 0..10 {
+            keys.push(slotmap.insert(x));
+        }
+        let mut it = slotmap.iter();
+        let a = it.by_ref().take(5).collect::<Vec<_>>();
+        let b = it.by_ref().rev().collect::<Vec<_>>();
+        assert!(matches!(
+            a.as_slice(),
+            [(_, 0), (_, 1), (_, 2), (_, 3), (_, 4)]
+        ));
+        assert!(matches!(
+            dbg!(b.as_slice()),
+            [(_, 9), (_, 8), (_, 7), (_, 6), (_, 5)]
+        ));
+    }
+
+    #[test]
+    fn test_iter_mut() {
+        let mut slotmap = SlotMap::new();
+        let mut keys = Vec::new();
+        for x in 0..10 {
+            keys.push(slotmap.insert(x));
+        }
+        for (_, val) in &mut slotmap {
+            *val *= 2;
+        }
+        let mut it = slotmap.iter();
+        let a = it.by_ref().take(5).collect::<Vec<_>>();
+        let b = it.by_ref().rev().collect::<Vec<_>>();
+        assert!(matches!(
+            a.as_slice(),
+            [(_, 0), (_, 2), (_, 4), (_, 6), (_, 8)]
+        ));
+        assert!(matches!(
+            dbg!(b.as_slice()),
+            [(_, 18), (_, 16), (_, 14), (_, 12), (_, 10)]
+        ));
+    }
+
+    #[test]
+    fn test_into_iter() {
+        let mut slotmap = SlotMap::new();
+        let mut keys = Vec::new();
+        for x in 0..10 {
+            keys.push(slotmap.insert(x));
+        }
+        let mut it = slotmap.into_iter();
+        let a = it.by_ref().take(5).collect::<Vec<_>>();
+        let b = it.by_ref().rev().collect::<Vec<_>>();
+        assert!(matches!(
+            a.as_slice(),
+            [(_, 0), (_, 1), (_, 2), (_, 3), (_, 4)]
+        ));
+        assert!(matches!(
+            dbg!(b.as_slice()),
+            [(_, 9), (_, 8), (_, 7), (_, 6), (_, 5)]
+        ));
     }
 }
