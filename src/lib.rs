@@ -597,6 +597,7 @@ mod test {
         let a = slotmap.insert("a");
         slotmap.remove(a);
         let b = slotmap.insert("b");
+        assert_eq!(a.index, b.index);
         assert_eq!(slotmap.get(a), None);
         assert_eq!(*slotmap.get(b).unwrap(), "b");
     }
