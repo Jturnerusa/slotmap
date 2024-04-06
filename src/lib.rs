@@ -327,7 +327,7 @@ impl<T> SlotMap<T> {
     ///
     /// let mut slotmap = SlotMap::new();
     ///
-    /// for i in 0..=10 {
+    /// for i in 0..10 {
     ///    let _ = slotmap.insert(i * 2);
     /// }
     ///
