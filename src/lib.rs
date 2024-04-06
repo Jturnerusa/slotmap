@@ -284,6 +284,7 @@ impl<T> SlotMap<T> {
     pub fn contains_key(&self, key: Key) -> bool {
         self.get(key).is_some()
     }
+
     /// Returns an iterator that yields a (key, value) tuple for every
     /// occupied slot in the slotmap.
     /// ##### Example
