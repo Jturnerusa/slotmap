@@ -285,6 +285,40 @@ impl<T> SlotMap<T> {
         self.get(key).is_some()
     }
 
+    /// Remove all items that do not satisfy a predicate.
+    /// ##### Performance
+    /// Removing elements does not require shifting elements but
+    /// does change the ordering of items.
+    /// ##### Example
+    /// ```
+    /// use slotmap::SlotMap;
+    ///
+    /// let mut slotmap = SlotMap::new();
+    ///
+    /// for i in 0..10 {
+    ///    let _ = slotmap.insert(i);
+    /// }
+    ///
+    /// slotmap.retain(|(key, val)| val % 2 == 0);
+    ///
+    /// assert_eq!(slotmap.len(), 5);
+    /// ```
+    pub fn retain<F>(&mut self, f: F)
+    where
+        F: Fn((Key, &T)) -> bool,
+    {
+        let mut i = 0;
+        while i < self.items.len() {
+            let key = self.items[i].key;
+            let val = &self.items[i].value;
+            if f((key, val)) {
+                i += 1;
+            } else {
+                self.remove(key);
+            }
+        }
+    }
+
     /// Returns an iterator that yields a (key, value) tuple for every
     /// occupied slot in the slotmap.
     /// ##### Example
@@ -725,5 +759,23 @@ mod test {
         assert_eq!(keys[7], b[2]);
         assert_eq!(keys[6], b[3]);
         assert_eq!(keys[5], b[4]);
+    }
+
+    #[test]
+    fn test_retain() {
+        let mut slotmap = SlotMap::new();
+
+        for x in 0..10 {
+            let _ = slotmap.insert(x);
+        }
+
+        slotmap.retain(|(_, _)| true);
+        assert_eq!(slotmap.len(), 10);
+
+        slotmap.retain(|(_, val)| *val >= 5);
+        assert_eq!(slotmap.len(), 5);
+
+        slotmap.retain(|(_, _)| false);
+        assert!(slotmap.is_empty());
     }
 }
